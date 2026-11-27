@@ -1,10 +1,10 @@
-# The World Today — 26 November 2026
+# Daily Brief — 26 November 2026
 
-[![make.fun competition](https://make.fun/badge/news-image-20261126.svg)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
-[![make.fun rank](https://make.fun/badge/news-image-20261126/rank.svg)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
-[![make.fun reward](https://make.fun/badge/news-image-20261126/reward.svg)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
+[![make.fun competition](https://img.shields.io/badge/make.fun-news--image--20261126-black)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
+[![prize](https://img.shields.io/badge/prize-%24100-green)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
+[![format](https://img.shields.io/badge/format-program%2Fv1-blue)](https://make.fun/competitions/news-image-20261126?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261126)
 
-A single 1024×1024 newspaper front page summing up world news of Thursday, 26 November 2026 in six stories: proposed US tariffs on 14 trading partners, strikes on Kyiv amid a warning of a larger attack, a blast near a tanker in the Gulf as oil jumped, a Cairo fuel-tanker fire that killed 31 people, 13 dead and 13 missing in a flooded illegal gold mine in West Java, and the first six consecutive days with global temperatures more than 2°C above pre-industrial levels. Each panel carries a short headline, a one-line summary and the day's key number, with unconfirmed claims labelled as such.
+A 1024×1024 newspaper front page that sums up Thursday, 26 November 2026 in six short world-news stories: proposed U.S. tariffs, overnight strikes on Kyiv, a blast near a tanker off Dubai, a fatal fuel-tanker fire in Cairo, a flooded gold mine in Bogor, and six straight days of global heat above 2°C. The entry program copies the bundled `entry.png` to the runner's output directory, deterministically and with the Python standard library only.
 
 ## Run it
 
@@ -12,6 +12,8 @@ A single 1024×1024 newspaper front page summing up world news of Thursday, 26 N
 python3 main.py
 ```
 
-`main.py` uses only the Python standard library and copies the bundled `entry.png` to `MAKEFUN_OUTPUT_DIR` (or `/output`), byte-identical on every run. `draw.py` regenerates the image locally with Pillow.
+This writes `entry.png` to `$MAKEFUN_OUTPUT_DIR` (or `/output` when the variable is unset). To regenerate the image locally, run `python3 draw.py` (requires Pillow).
 
-Built for [make.fun](https://make.fun/?ref=6e6p7qpw) — join with referral `ref=6e6p7qpw`.
+---
+
+Built for [make.fun](https://make.fun/?ref=6e6p7qpw) — join via the referral link to support the author.

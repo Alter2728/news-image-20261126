@@ -1,210 +1,177 @@
-"""Draw the 26 November 2026 world-news front page (local generation only).
+"""Generate entry.png: a 1024x1024 newspaper front page.
 
-The grader runs main.py, which copies the PNG produced here.
+Summarises world news from Thursday, 26 November 2026 in six short
+stories. This script is a local build tool only; the submitted entry
+runs main.py, which copies the finished entry.png.
 """
 
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-W = H = 1024
-BG = (247, 243, 233)
-INK = (26, 26, 26)
-MUTED = (90, 86, 78)
-PAPER = (255, 255, 252)
-LINE = (205, 198, 182)
-RED = (176, 42, 30)
-NAVY = (31, 58, 95)
-TEAL = (14, 107, 107)
-AMBER = (166, 106, 12)
-PLUM = (110, 52, 95)
-GREEN = (46, 110, 62)
+SIZE = 1024
+MARGIN = 36
+BG = (247, 243, 234)
+INK = (28, 28, 30)
+MUTED = (92, 86, 78)
+ACCENT = (165, 38, 32)
+RULE = (28, 28, 30)
+FAINT = (196, 188, 172)
 
-SERIF_B = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
-SERIF = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"
-SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-SANS_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_DIRS = [
+    "/usr/share/fonts/truetype/dejavu",
+    "/usr/share/fonts/truetype/liberation",
+    "/usr/share/fonts",
+]
 
 
-def font(path, size):
-    return ImageFont.truetype(path, size)
+def load_font(candidates, size):
+    for name in candidates:
+        for folder in FONT_DIRS:
+            path = Path(folder) / name
+            if path.is_file():
+                return ImageFont.truetype(str(path), size)
+    return ImageFont.load_default(size=size)
 
 
-def wrap(draw, text, fnt, max_w):
-    words, lines, cur = text.split(), [], ""
-    for word in words:
-        trial = f"{cur} {word}".strip()
-        if draw.textlength(trial, font=fnt) <= max_w or not cur:
-            cur = trial
+SERIF_BOLD = ["DejaVuSerif-Bold.ttf", "LiberationSerif-Bold.ttf"]
+SERIF = ["DejaVuSerif.ttf", "LiberationSerif-Regular.ttf"]
+SANS_BOLD = ["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"]
+SANS = ["DejaVuSans.ttf", "LiberationSans-Regular.ttf"]
+
+STORIES = [
+    (
+        "1 · TRADE — WASHINGTON",
+        "U.S. Weighs New Tariffs on 14 Partners",
+        "Washington proposed Section 301 duties, including 20% on China "
+        "rising to 40% if the truce ends, 35% on Vietnam and 15% on "
+        "the EU and Japan. A hearing is set for 25 January.",
+    ),
+    (
+        "2 · WAR — KYIV",
+        "Missiles and Drones Hit Kyiv Overnight",
+        "Strikes hit the capital and seven regions with ballistic "
+        "missiles and 113 drones, cutting power in places. President "
+        "Zelensky warned a larger attack was being prepared.",
+    ),
+    (
+        "3 · ENERGY — GULF",
+        "Blast Reported Near Tanker off Dubai",
+        "UKMTO reported an explosion near a tanker off Dubai; the crew "
+        "was safe. Iran's mine claim was unconfirmed as Brent crude "
+        "held near $96 a barrel.",
+    ),
+    (
+        "4 · EGYPT — CAIRO",
+        "Fuel Tanker Fire Kills 31 in Cairo",
+        "A tanker overturned on the Ring Road and burst into flames, "
+        "killing 31 people and burning 27 vehicles. The driver was "
+        "detained as investigators examined the crash.",
+    ),
+    (
+        "5 · INDONESIA — BOGOR",
+        "Flooded Gold Mine Leaves 13 Dead",
+        "Heavy rain flooded an illegal gold mine in Bogor, West Java. "
+        "Officials confirmed 13 deaths and 13 people still missing as "
+        "rescue work continued.",
+    ),
+    (
+        "6 · CLIMATE — COPERNICUS",
+        "Six Days Above 2°C in Global Heat",
+        "Copernicus recorded six straight days, 18–23 November, above "
+        "2°C versus pre-industrial levels, peaking at 2.24°C against "
+        "a 1.44°C long-term average.",
+    ),
+]
+
+
+def wrap(draw, text, font, max_width):
+    lines = []
+    current = ""
+    for word in text.split():
+        trial = word if not current else current + " " + word
+        if draw.textlength(trial, font=font) <= max_width:
+            current = trial
         else:
-            lines.append(cur)
-            cur = word
-    if cur:
-        lines.append(cur)
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
     return lines
 
 
-def text_block(draw, xy, text, fnt, fill, max_w, leading):
-    x, y = xy
-    for line in wrap(draw, text, fnt, max_w):
-        draw.text((x, y), line, font=fnt, fill=fill)
-        y += leading
-    return y
+def draw_centered(draw, y, text, font, fill):
+    width = draw.textlength(text, font=font)
+    draw.text(((SIZE - width) / 2, y), text, font=font, fill=fill)
+    return y + font.size
 
 
-def tag(draw, x, y, label, color):
-    fnt = font(SANS_B, 17)
-    w = draw.textlength(label, font=fnt) + 22
-    draw.rounded_rectangle([x, y, x + w, y + 30], radius=8, fill=color)
-    draw.text((x + 11, y + 5), label, font=fnt, fill=(255, 255, 255))
-    return w
-
-
-def icon(draw, cx, cy, kind, color):
-    r = 21
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=color)
-    wht = (255, 255, 255)
-    if kind == "bolt":
-        draw.polygon([(cx + 3, cy - 13), (cx - 7, cy + 2), (cx - 1, cy + 2), (cx - 3, cy + 13), (cx + 7, cy - 2), (cx + 1, cy - 2)], fill=wht)
-    elif kind == "ship":
-        draw.polygon([(cx - 13, cy + 4), (cx + 13, cy + 4), (cx + 9, cy + 11), (cx - 9, cy + 11)], fill=wht)
-        draw.rectangle([cx - 9, cy - 3, cx + 1, cy + 3], fill=wht)
-        draw.rectangle([cx + 3, cy - 8, cx + 7, cy + 3], fill=wht)
-        draw.line([cx - 11, cy + 14, cx + 11, cy + 14], fill=wht, width=2)
-    elif kind == "flame":
-        draw.polygon([(cx, cy - 14), (cx + 9, cy + 2), (cx + 6, cy + 11), (cx - 6, cy + 11), (cx - 9, cy + 2)], fill=wht)
-        draw.ellipse([cx - 4, cy + 2, cx + 4, cy + 11], fill=color)
-    elif kind == "drop":
-        draw.polygon([(cx, cy - 14), (cx + 8, cy + 4), (cx - 8, cy + 4)], fill=wht)
-        draw.ellipse([cx - 8, cy - 2, cx + 8, cy + 12], fill=wht)
-    elif kind == "thermo":
-        draw.rounded_rectangle([cx - 4, cy - 13, cx + 4, cy + 6], radius=4, fill=wht)
-        draw.ellipse([cx - 8, cy + 2, cx + 8, cy + 14], fill=wht)
-    elif kind == "percent":
-        draw.line([cx + 9, cy - 12, cx - 9, cy + 12], fill=wht, width=4)
-        draw.ellipse([cx - 12, cy - 12, cx - 4, cy - 4], outline=wht, width=3)
-        draw.ellipse([cx + 4, cy + 4, cx + 12, cy + 12], outline=wht, width=3)
-
-
-def accent(draw, box, color):
-    x0, y0, x1, _ = box
-    draw.rounded_rectangle([x0 + 16, y0 + 10, x1 - 16, y0 + 17], radius=3, fill=color)
-
-
-def panel(draw, box, color, label, headline, summary, number, kind):
-    x0, y0, x1, y1 = box
-    draw.rounded_rectangle(box, radius=14, fill=PAPER, outline=LINE, width=2)
-    accent(draw, box, color)
-    tag(draw, x0 + 20, y0 + 28, label, color)
-    icon(draw, x1 - 38, y0 + 43, kind, color)
-    nf = font(SANS_B, 27)
-    nw = draw.textlength(number, font=nf)
-    draw.text((x1 - 68 - nw, y0 + 30), number, font=nf, fill=color)
-    y = text_block(draw, (x0 + 20, y0 + 72), headline, font(SERIF_B, 29), INK, x1 - x0 - 40, 34)
-    text_block(draw, (x0 + 20, y + 6), summary, font(SANS, 21), MUTED, x1 - x0 - 40, 27)
+def draw_card(draw, x, y, width, kicker, headline, summary, fonts):
+    kicker_font, headline_font, body_font = fonts
+    cursor = y
+    draw.text((x, cursor), kicker, font=kicker_font, fill=ACCENT)
+    cursor += 26
+    for line in wrap(draw, headline, headline_font, width):
+        draw.text((x, cursor), line, font=headline_font, fill=INK)
+        cursor += 35
+    cursor += 6
+    for line in wrap(draw, summary, body_font, width):
+        draw.text((x, cursor), line, font=body_font, fill=(52, 50, 48))
+        cursor += 27
+    return cursor
 
 
 def main():
-    img = Image.new("RGB", (W, H), BG)
-    d = ImageDraw.Draw(img)
+    image = Image.new("RGB", (SIZE, SIZE), BG)
+    draw = ImageDraw.Draw(image)
 
-    # Masthead
-    title = "THE WORLD TODAY"
-    tf = font(SERIF_B, 56)
-    tw = d.textlength(title, font=tf)
-    d.text(((W - tw) / 2, 24), title, font=tf, fill=INK)
-    d.rectangle([36, 96, W - 36, 100], fill=INK)
-    date = "Thursday, 26 November 2026"
-    df = font(SANS_B, 29)
-    dw = d.textlength(date, font=df)
-    d.text(((W - dw) / 2, 108), date, font=df, fill=RED)
-    sub = "Six consequential stories from one day"
-    sf = font(SANS, 19)
-    sw = d.textlength(sub, font=sf)
-    d.text(((W - sw) / 2, 144), sub, font=sf, fill=MUTED)
+    masthead_font = load_font(SERIF_BOLD, 66)
+    date_font = load_font(SANS_BOLD, 30)
+    strap_font = load_font(SERIF, 22)
+    kicker_font = load_font(SANS_BOLD, 18)
+    headline_font = load_font(SERIF_BOLD, 30)
+    body_font = load_font(SANS, 20)
+    footer_font = load_font(SANS, 17)
 
-    # Lead story: tariffs
-    lead = [36, 180, W - 36, 352]
-    d.rounded_rectangle(lead, radius=14, fill=PAPER, outline=LINE, width=2)
-    accent(d, lead, NAVY)
-    tag(d, 56, 206, "WORLD TRADE", NAVY)
-    icon(d, W - 74, 221, "percent", NAVY)
-    nf = font(SANS_B, 28)
-    num = "14 partners"
-    d.text((W - 104 - d.textlength(num, font=nf), 208), num, font=nf, fill=NAVY)
-    y = text_block(d, (56, 244), "US proposes new tariffs on 14 partners", font(SERIF_B, 37), INK, W - 112, 43)
-    text_block(
-        d,
-        (56, y + 1),
-        "Public hearing set for 25 January; rates hinge on trade deals.",
-        font(SANS, 20),
-        MUTED,
-        W - 112,
-        26,
-    )
-    chips = ["CHINA 20% → 40%", "VIETNAM 35%", "EU · JAPAN 15%"]
-    cf = font(SANS_B, 18)
-    cx = 56
-    for chip in chips:
-        cw = d.textlength(chip, font=cf) + 26
-        d.rounded_rectangle([cx, 318, cx + cw, 346], radius=9, fill=(232, 238, 246), outline=NAVY, width=1)
-        d.text((cx + 13, 323), chip, font=cf, fill=NAVY)
-        cx += cw + 14
+    draw.rectangle([14, 14, SIZE - 15, SIZE - 15], outline=INK, width=3)
 
-    # Grid panels
-    panel(
-        d, [36, 360, 502, 572], RED, "UKRAINE",
-        "Strikes hit Kyiv; warning of more",
-        "Power cut in 7 regions. Zelensky warns of more.",
-        "113 drones", "bolt",
-    )
-    panel(
-        d, [522, 360, W - 36, 572], TEAL, "GULF ENERGY",
-        "Blast near tanker; oil jumps",
-        "Blast off Dubai, crew safe (UKMTO). Iran's mine claim is unconfirmed.",
-        "Brent $96", "ship",
-    )
-    panel(
-        d, [36, 588, 502, 800], AMBER, "EGYPT",
-        "Tanker fire kills 31 in Cairo",
-        "Fuel tanker overturned on the Ring Road; 27 vehicles burned.",
-        "31 dead", "flame",
-    )
-    panel(
-        d, [522, 588, W - 36, 800], PLUM, "INDONESIA",
-        "13 dead, 13 missing in flooded mine",
-        "Illegal gold mine in West Java flooded after heavy rain.",
-        "13 + 13", "drop",
+    y = draw_centered(draw, 40, "THE DAILY BRIEF", masthead_font, INK)
+    y = draw_centered(draw, y + 8, "Thursday, 26 November 2026", date_font, ACCENT)
+    y = draw_centered(
+        draw, y + 8, "Six stories that shaped the world today", strap_font, MUTED
     )
 
-    # Climate band
-    band = [36, 816, W - 36, 958]
-    d.rounded_rectangle(band, radius=14, fill=PAPER, outline=LINE, width=2)
-    accent(d, band, GREEN)
-    tag(d, 56, 842, "PLANET", GREEN)
-    icon(d, W - 74, 857, "thermo", GREEN)
-    nf2 = font(SANS_B, 28)
-    num2 = "2.24°C peak"
-    d.text((W - 104 - d.textlength(num2, font=nf2), 844), num2, font=nf2, fill=GREEN)
-    y = text_block(d, (56, 884), "Six days above 2°C — a first on record", font(SERIF_B, 31), INK, W - 112, 37)
-    text_block(
-        d,
-        (56, y + 2),
-        "18–23 Nov (Copernicus). Brief streak; long-term average is 1.44°C.",
-        font(SANS, 20),
-        MUTED,
-        W - 112,
-        26,
-    )
+    rule_y = y + 18
+    draw.line([MARGIN, rule_y, SIZE - MARGIN, rule_y], fill=RULE, width=4)
+    draw.line([MARGIN, rule_y + 8, SIZE - MARGIN, rule_y + 8], fill=RULE, width=1)
 
-    foot = "Reported 26 Nov 2026  •  Reuters · AP · BBC · Copernicus · UKMTO"
-    ff = font(SANS, 16)
-    fw = d.textlength(foot, font=ff)
-    d.text(((W - fw) / 2, 972), foot, font=ff, fill=MUTED)
+    grid_top = rule_y + 26
+    grid_bottom = SIZE - 64
+    col_gap = 28
+    col_width = (SIZE - 2 * MARGIN - col_gap) // 2
+    row_height = (grid_bottom - grid_top) // 3
+    fonts = (kicker_font, headline_font, body_font)
+
+    for index, (kicker, headline, summary) in enumerate(STORIES):
+        col = index % 2
+        row = index // 2
+        x = MARGIN + col * (col_width + col_gap)
+        card_y = grid_top + row * row_height
+        draw_card(draw, x, card_y, col_width, kicker, headline, summary, fonts)
+        if row < 2:
+            line_y = card_y + row_height - 12
+            draw.line([x, line_y, x + col_width, line_y], fill=FAINT, width=1)
+
+    mid_x = MARGIN + col_width + col_gap // 2
+    draw.line([mid_x, grid_top, mid_x, grid_bottom - 8], fill=FAINT, width=1)
+
+    footer = "Compiled from wire reports and official statements · 26 November 2026"
+    draw_centered(draw, SIZE - 48, footer, footer_font, MUTED)
 
     out = Path(__file__).resolve().parent / "entry.png"
-    img.save(out, format="PNG", optimize=True)
-    print(out, img.size, out.stat().st_size)
+    image.save(out, format="PNG", optimize=True)
+    print(f"wrote {out} ({image.width}x{image.height})")
 
 
 if __name__ == "__main__":
