@@ -1,26 +1,26 @@
-#!/usr/bin/env python3
-"""Publish the bundled front-page image for 26 November 2026 (stdlib only)."""
-import hashlib
+"""Entry point for the news-image-20261126 make.fun bounty.
+
+Copies the bundled front-page image to the grader output directory.
+Standard library only; the copy is byte-identical on every run.
+"""
+
 import os
 import shutil
-import sys
+from pathlib import Path
 
 
-def publish():
-    folder = os.path.dirname(os.path.abspath(__file__))
-    source = os.path.join(folder, "entry.png")
-    if not os.path.isfile(source):
-        print("missing entry.png beside main.py", file=sys.stderr)
-        return 1
-    destination_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
-    os.makedirs(destination_dir, exist_ok=True)
-    destination = os.path.join(destination_dir, "entry.png")
-    shutil.copyfile(source, destination)
-    with open(destination, "rb") as handle:
-        payload = handle.read()
-    print("entry.png", len(payload), "bytes", hashlib.sha256(payload).hexdigest())
-    return 0
+def main() -> None:
+    here = Path(__file__).resolve().parent
+    source = here / "entry.png"
+    if not source.is_file():
+        raise FileNotFoundError(f"bundled image missing: {source}")
+    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / "entry.png"
+    shutil.copyfile(source, target)
+    if target.stat().st_size != source.stat().st_size:
+        raise OSError("copied image size mismatch")
 
 
 if __name__ == "__main__":
-    sys.exit(publish())
+    main()
